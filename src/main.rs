@@ -7,7 +7,9 @@ use poem_openapi::{
     payload::{Json, PlainText},
     ApiResponse, Object, OpenApi, OpenApiService,
 };
-use sea_orm::Database;
+use sea_orm::{sqlx::Database, DatabaseConnection};
+
+// use sea_orm::{Database, DatabaseConnection};
 
 /// Book
 #[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq)]
@@ -44,7 +46,9 @@ enum CreateUserResponse {
     InternalServerError,
 }
 
-struct Api;
+struct Api<'a> {
+    db: &'a DatabaseConnection
+}
 
 // Check here:
 // https://github.com/poem-web/poem/blob/master/examples/openapi/users-crud/src/main.rs
@@ -71,7 +75,8 @@ impl Api {
     /// List books
     #[oai(path = "/books", method = "get")]
     async fn list_books(&self) -> Json<Vec<Book>> {
-        return Json(db::get_books());
+        self.db.
+        // return Json(db::get_books());
     }
 
     /// Create book
@@ -79,7 +84,7 @@ impl Api {
     async fn create_books(&self, b: Json<Book>) -> CreateUserResponse {
         let mut x = b.0;
         x.id = -1;
-        let book_id = db::add_book(x);
+        // let book_id = db::add_book(x);
         match book_id {
             Some(new_id) => return CreateUserResponse::Ok(Json(new_id)),
             None => return CreateUserResponse::InternalServerError,
@@ -91,7 +96,7 @@ impl Api {
 async fn main() -> Result<(), std::io::Error> {
     let db = Database::connect("postgres://postgres:ssenol@127.0.0.1/poembooks" ).await.unwrap();
     let api_service =
-        OpenApiService::new(Api, "Poem Bookstore Api", "1.0").server("http://localhost:3000");
+        OpenApiService::new(Api {db: &db}, "Poem Bookstore Api", "1.0").server("http://localhost:3000");
     let ui = api_service.swagger_ui();
     let app = Route::new().nest("/", api_service).nest("/docs", ui);
 
