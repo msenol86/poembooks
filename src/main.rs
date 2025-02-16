@@ -2,14 +2,23 @@
 mod db;
 
 use poem::{listener::TcpListener, Route, Server};
-use poem_openapi::{param::Query, payload::Json, payload::PlainText, OpenApi, OpenApiService};
+use poem_openapi::{
+    param::Query,
+    payload::{Json, PlainText},
+    ApiResponse, Object, OpenApi, OpenApiService,
+};
 
 /// Book
 #[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq)]
 struct Book {
+    /// Id
+    #[oai(read_only)]
     id: i64,
+    /// Title
     title: String,
+    /// Author
     author: String,
+    /// Pages
     pages: u16,
 }
 
@@ -24,7 +33,20 @@ struct User {
     name: String,
 }
 
+#[derive(ApiResponse)]
+enum CreateUserResponse {
+    /// Returns when the user is successfully created.
+    #[oai(status = 200)]
+    Ok(Json<i64>),
+    /// Return when locking error
+    #[oai(status = 500)]
+    InternalServerError,
+}
+
 struct Api;
+
+// Check here:
+// https://github.com/poem-web/poem/blob/master/examples/openapi/users-crud/src/main.rs
 
 #[OpenApi]
 impl Api {
@@ -38,7 +60,7 @@ impl Api {
     #[oai(path = "/name", method = "get")]
     async fn greet_with_name(&self, p_name: Query<Option<String>>) -> Json<User> {
         match p_name.0 {
-            Some(name) => Json(User { name: name }),
+            Some(name) => Json(User { name }),
             None => Json(User {
                 name: format!("{}", "test"),
             }),
@@ -48,8 +70,19 @@ impl Api {
     /// List books
     #[oai(path = "/books", method = "get")]
     async fn list_books(&self) -> Json<Vec<Book>> {
-        // let xx: Vec<Book> = Vec::new();
         return Json(db::get_books());
+    }
+
+    /// Create book
+    #[oai(path = "/books", method = "post")]
+    async fn create_books(&self, b: Json<Book>) -> CreateUserResponse {
+        let mut x = b.0;
+        x.id = -1;
+        let book_id = db::add_book(x);
+        match book_id {
+            Some(new_id) => return CreateUserResponse::Ok(Json(new_id)),
+            None => return CreateUserResponse::InternalServerError,
+        }
     }
 }
 

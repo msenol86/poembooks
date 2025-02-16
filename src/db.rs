@@ -21,6 +21,18 @@ pub fn get_books() -> Vec<Book> {
     return BOOKS.lock().unwrap().to_vec();
 }
 
-pub fn add_book(b: Book) {
-    BOOKS.lock().unwrap().push(b);
+pub fn add_book(mut b: Book) -> Option<i64> {
+    let books = BOOKS.lock();
+    match books {
+        Ok(mut books) => {
+            let new_id = books.iter().map(|e| e.id).max().unwrap_or(0) + 1;
+            b.id = new_id;
+            books.push(b);
+            return Some(new_id);
+        }
+        Err(e) => {
+            eprintln!("Failed to lock books: {}", e);
+            return None
+        }
+    }
 }
