@@ -3,7 +3,6 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::Book;
 
-
 static BOOKS: LazyLock<Mutex<Vec<Book>>> = LazyLock::new(|| Mutex::new(vec![Book {
     id: 1,
     title: "War and Peace".to_string(),
