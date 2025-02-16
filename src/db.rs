@@ -1,6 +1,10 @@
 #![forbid(unsafe_code)]
 // use std::sync::{LazyLock, Mutex};
 
+use std::collections::HashMap;
+
+use sqlx::{Column, Row, ValueRef, postgres::PgRow};
+
 
 use crate::Book;
 
@@ -19,10 +23,7 @@ use crate::Book;
 // Check here:
 // https://github.com/SeaQL/sea-orm/tree/master/examples/poem_example
 
-
-
 // use sea_orm::entity::prelude::*;
-
 
 // pub fn get_books() -> Vec<Book> {
 //     return BOOKS.lock().unwrap().to_vec();
@@ -43,3 +44,19 @@ use crate::Book;
 //         }
 //     }
 // }
+
+pub fn row_to_hashmap(row: &PgRow) -> HashMap<String, String> {
+    let mut result = HashMap::new();
+    for col in row.columns() {
+        let value = row.try_get_raw(col.ordinal()).unwrap();
+        let value = match value.is_null() {
+            true => "NULL".to_string(),
+            false => {
+                println!("converted value: {}", value.as_str().unwrap().to_string());
+                value.as_str().unwrap().to_string()},
+        };
+        result.insert(col.name().to_string(), value);
+    }
+
+    result
+}
