@@ -8,7 +8,7 @@ use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{
     param::Query,
     payload::{Json, PlainText},
-    ApiResponse, OpenApi, OpenApiService,
+    ApiResponse, OpenApi, OpenApiService, 
 };
 use routers::book_routers::BooksEndpoints;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
@@ -17,15 +17,17 @@ struct UserEndpoints {
     pool: Pool<Postgres>,
 }
 
-// #[derive(Debug, Clone, Eq, PartialEq)]
-// enum HealthState {
-//     Healthy,
-//     NotHealthy,
-// }
+#[derive(Debug, poem_openapi::Enum, Clone, Eq, PartialEq)]
+pub enum HealthState {
+    #[oai(rename="healthy")]
+    Healthy,
+    #[oai(rename="not_healthy")]
+    NotHealthy,
+}
 
 #[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq)]
-struct HeatlhStatus {
-    pub status: String,
+pub struct HeatlhStatus {
+    pub status: HealthState,
 }
 
 #[derive(ApiResponse)]
@@ -63,7 +65,7 @@ impl UserEndpoints {
     #[oai(path = "/health", method = "get")]
     pub async fn check_health(&self) -> HealthStatusResponse {
         return HealthStatusResponse::Ok(Json(HeatlhStatus {
-            status: "healthy".to_string(),
+            status: HealthState::Healthy,
         }));
     }
 }

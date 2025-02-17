@@ -1,16 +1,14 @@
-use crate::models::book_model::{Book, CreateBookResponse};
+use crate::models::book_model::{AiRequest, Book, CreateBookResponse, AiResponse};
 
 use sqlx::{Pool, Postgres};
 
-use poem_openapi::{
-    payload::Json,
-    OpenApi,
-};
+use poem_openapi::{payload::Json, types::Type, OpenApi};
+
+
 
 pub struct BooksEndpoints {
     pub pool: Pool<Postgres>,
 }
-
 
 #[OpenApi]
 impl BooksEndpoints {
@@ -51,5 +49,32 @@ impl BooksEndpoints {
             Some(t_id) => return CreateBookResponse::Ok(Json(t_id as i64)),
             None => return CreateBookResponse::InternalServerError,
         }
+    }
+
+    /// Check AI for Author-Title match
+    #[oai(path = "/books/ai", method = "post")]
+    pub async fn check_ai(&self, prompt: Json<AiRequest>) -> Json<AiResponse> {
+        let xxx = prompt.as_raw_value().unwrap();
+        let client = reqwest::Client::new();
+        let resp = client.post("http://127.0.0.1:11434/api/generate").json(xxx).send().await.unwrap().json::<AiResponse>().await;
+        match resp {
+            Ok(ip) => {
+                println!("resp: {:#?}", ip);
+                return Json(ip);
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                return Json(AiResponse{model: "error".to_string(), response: "error".to_string(), done: false});
+            }
+        }
+        // println!("resp: {:#?}", resp);
+        // let ip = resp.json::<Ip>().await.unwrap();
+            // .await
+            // .unwrap()
+            // .json::<Ip>()
+            // .await
+            // .unwrap();
+        // println!("ip: {:#?}", ip);
+        
     }
 }

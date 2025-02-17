@@ -3,6 +3,7 @@
 // Check here for sea ORM Model
 // https://github.com/SeaQL/sea-orm/blob/master/src/tests_cfg/cake.rs
 use poem_openapi::{payload::Json, ApiResponse};
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// Book
@@ -38,4 +39,32 @@ pub struct User {
     /// Name
     #[oai(validator(max_length = 64))]
     pub name: String,
+}
+
+// {
+//     "model": "tinyllama",
+//     "prompt": "who are the possible authors of book titled \"Mother\"?", "stream": false
+//   }
+
+fn default_model() -> String {
+    return "tinyllama".to_string();
+}
+
+fn default_stream() -> bool {
+    return false;
+}
+#[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq, Serialize)]
+pub struct AiRequest {
+    #[oai(default = "default_model")]
+    pub model: String,
+    pub prompt: String,
+    #[oai(default = "default_stream")]
+    pub stream: bool,
+}
+
+#[derive(Debug, Deserialize, poem_openapi::Object, Clone)]
+pub struct AiResponse {
+    pub model: String,
+    pub response: String,
+    pub done: bool,
 }

@@ -8,5 +8,8 @@ poem = "3"
 poem-openapi = { version = "5", features = ["swagger-ui"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 sqlx = { version = "0.8", features = [ "postgres", "runtime-tokio" ] }
+reqwest = { version = "0.12", features = ["json", "multipart"] }
+serde = "1.0"
+
 
 # sea-orm = { version = "1.1.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ] }
