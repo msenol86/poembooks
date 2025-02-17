@@ -8,13 +8,34 @@ use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{
     param::Query,
     payload::{Json, PlainText},
-    OpenApi, OpenApiService,
+    ApiResponse, OpenApi, OpenApiService,
 };
 use routers::book_routers::BooksEndpoints;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 struct UserEndpoints {
     pool: Pool<Postgres>,
+}
+
+// #[derive(Debug, Clone, Eq, PartialEq)]
+// enum HealthState {
+//     Healthy,
+//     NotHealthy,
+// }
+
+#[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq)]
+struct HeatlhStatus {
+    pub status: String,
+}
+
+#[derive(ApiResponse)]
+pub enum HealthStatusResponse {
+    /// Returns when the book is successfully created.
+    #[oai(status = 200)]
+    Ok(Json<HeatlhStatus>),
+    /// Return when something wrong
+    #[oai(status = 500)]
+    InternalServerError,
 }
 
 // Check here:
@@ -38,6 +59,13 @@ impl UserEndpoints {
             }),
         }
     }
+
+    #[oai(path = "/health", method = "get")]
+    pub async fn check_health(&self) -> HealthStatusResponse {
+        return HealthStatusResponse::Ok(Json(HeatlhStatus {
+            status: "healthy".to_string(),
+        }));
+    }
 }
 
 #[tokio::main]
@@ -47,7 +75,10 @@ async fn main() {
         .connect("postgres://postgres:ssenol@127.0.0.1/poembooks")
         .await
         .unwrap();
-    let all_endpoints = (UserEndpoints { pool: pool.clone() }, BooksEndpoints { pool: pool.clone() });
+    let all_endpoints = (
+        UserEndpoints { pool: pool.clone() },
+        BooksEndpoints { pool: pool.clone() },
+    );
     let api_service = OpenApiService::new(all_endpoints, "Poem Bookstore Api", "1.0")
         .server("http://127.0.0.1:3000");
     let ui = api_service.swagger_ui();
