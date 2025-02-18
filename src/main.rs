@@ -8,20 +8,20 @@ use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{
     param::Query,
     payload::{Json, PlainText},
-    ApiResponse, OpenApi, OpenApiService, 
+    ApiResponse, OpenApi, OpenApiService,
 };
 use routers::book_routers::BooksEndpoints;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-struct UserEndpoints {
+pub struct UserEndpoints {
     pool: Pool<Postgres>,
 }
 
 #[derive(Debug, poem_openapi::Enum, Clone, Eq, PartialEq)]
 pub enum HealthState {
-    #[oai(rename="healthy")]
+    #[oai(rename = "healthy")]
     Healthy,
-    #[oai(rename="not_healthy")]
+    #[oai(rename = "not_healthy")]
     NotHealthy,
 }
 
@@ -42,6 +42,7 @@ pub enum HealthStatusResponse {
 
 // Check here:
 // https://github.com/poem-web/poem/blob/master/examples/openapi/users-crud/src/main.rs
+// https://github.com/poem-web/poem/blob/master/examples/openapi/todos/src/main.rs
 
 #[OpenApi]
 impl UserEndpoints {
@@ -71,7 +72,7 @@ impl UserEndpoints {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect("postgres://postgres:ssenol@127.0.0.1/poembooks")
@@ -88,8 +89,8 @@ async fn main() {
 
     Server::new(TcpListener::bind("127.0.0.1:3000"))
         .run(app)
-        .await;
+        .await?;
 
     // Closing connection here
-    // Ok(())
+    Ok(())
 }

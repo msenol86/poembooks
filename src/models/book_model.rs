@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// Book
-#[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq, sqlx::FromRow)]
+#[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq)]
 pub struct Book {
     /// Id
     #[oai(read_only)]
@@ -21,6 +21,19 @@ pub struct Book {
 }
 
 #[derive(ApiResponse)]
+pub enum GetBookResponse {
+    /// Returns when the book is successfully created.
+    #[oai(status = 200)]
+    Ok(Json<Book>),
+    /// Return when something wrong
+    #[oai(status = 500)]
+    InternalServerError,
+    #[oai(status = 404)]
+    NotFoundError,
+}
+
+
+#[derive(ApiResponse)]
 pub enum CreateBookResponse {
     /// Returns when the book is successfully created.
     #[oai(status = 200)]
@@ -28,6 +41,18 @@ pub enum CreateBookResponse {
     /// Return when something wrong
     #[oai(status = 500)]
     InternalServerError,
+}
+
+#[derive(ApiResponse)]
+pub enum DeleteBookResponse {
+    /// Returns when the book is successfully deleted.
+    #[oai(status = 200)]
+    Ok(Json<i64>),
+    /// Return when something wrong
+    #[oai(status = 500)]
+    InternalServerError,
+    #[oai(status = 404)]
+    NotFoundError,
 }
 
 /// Create user schema
