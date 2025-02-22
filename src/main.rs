@@ -3,6 +3,8 @@
 mod models;
 mod routers;
 
+use std::env;
+
 use models::book_model::User;
 use poem::{listener::TcpListener, Route, Server};
 use poem_openapi::{
@@ -71,23 +73,50 @@ impl UserEndpoints {
     }
 }
 
+pub async fn get_postgresql_host() -> String {
+    return env::var("PG_HOST").unwrap_or("127.0.0.1".to_string());
+}
+
+async fn get_pool() -> Option<Pool<Postgres>> {
+    let mut pool: Result<Pool<Postgres>, sqlx::Error> = Err(sqlx::Error::PoolTimedOut);
+
+    for i in 0..5 {
+        if i > 0 {
+            println!("Attempt {} to connect to database failed", i);
+        }
+        pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&format!("postgres://postgres:ssenol@{}/poembooks", get_postgresql_host().await))
+            .await;
+        println!("pool: {pool:#?}");
+    }
+    if pool.is_err() {
+        return None;
+    } else {
+        return Some(pool.unwrap());
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect("postgres://postgres:ssenol@127.0.0.1/poembooks")
-        .await
-        .unwrap();
+    let pool = get_pool().await;
+    if pool.is_none() {
+        println!("Failed to connect to database");
+        return Err(Box::from("Failed to connect to database"));
+    }
+    let pool = pool.unwrap();
+
     let all_endpoints = (
         UserEndpoints { pool: pool.clone() },
         BooksEndpoints { pool: pool.clone() },
     );
+
     let api_service = OpenApiService::new(all_endpoints, "Poem Bookstore Api", "1.0")
-        .server("http://127.0.0.1:3000");
+        .server("http://0.0.0.0:3000");
     let ui = api_service.swagger_ui();
     let app = Route::new().nest("/", api_service).nest("/docs", ui);
 
-    Server::new(TcpListener::bind("127.0.0.1:3000"))
+    Server::new(TcpListener::bind("0.0.0.0:3000"))
         .run(app)
         .await?;
 
