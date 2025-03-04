@@ -72,11 +72,11 @@ pub struct User {
 //   }
 
 fn default_model() -> String {
-    return "tinyllama".to_string();
+    "tinyllama".to_string()
 }
 
 fn default_stream() -> bool {
-    return false;
+    false
 }
 #[derive(Debug, poem_openapi::Object, Clone, Eq, PartialEq, Serialize)]
 pub struct AiRequest {

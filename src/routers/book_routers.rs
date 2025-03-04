@@ -29,7 +29,7 @@ impl BooksEndpoints {
                 pages: e.3 as u16,
             })
             .collect();
-        return Json(t_books);
+        Json(t_books)
     }
 
     /// Create book
@@ -46,8 +46,8 @@ impl BooksEndpoints {
         .unwrap();
 
         match x {
-            Some(t_id) => return CreateBookResponse::Ok(Json(t_id as i64)),
-            None => return CreateBookResponse::InternalServerError,
+            Some(t_id) => CreateBookResponse::Ok(Json(t_id as i64)),
+            None => CreateBookResponse::InternalServerError,
         }
     }
 
@@ -61,8 +61,8 @@ impl BooksEndpoints {
                 .await;
         match result {
             Ok(deleted_book_id) => match deleted_book_id {
-                Some(t_id) => return DeleteBookResponse::Ok(Json(t_id as i64)),
-                None => return DeleteBookResponse::NotFoundError,
+                Some(t_id) => DeleteBookResponse::Ok(Json(t_id as i64)),
+                None => DeleteBookResponse::NotFoundError,
             },
             Err(_) => DeleteBookResponse::InternalServerError,
         }
@@ -85,9 +85,9 @@ impl BooksEndpoints {
                     author: t_book.2,
                     pages: t_book.3 as u16,
                 };
-                return GetBookResponse::Ok(Json(t_book));
+                GetBookResponse::Ok(Json(t_book))
             }
-            None => return GetBookResponse::NotFoundError,
+            None => GetBookResponse::NotFoundError,
         }
     }
 
@@ -102,6 +102,6 @@ impl BooksEndpoints {
             .send()
             .await
             .unwrap();
-        return Json(resp.json::<AiResponse>().await.unwrap());
+        Json(resp.json::<AiResponse>().await.unwrap())
     }
 }

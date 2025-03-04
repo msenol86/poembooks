@@ -6,7 +6,7 @@ mod routers;
 use std::env;
 
 use models::book_model::User;
-use poem::{listener::TcpListener, Route, Server};
+use poem::{listener::TcpListener, middleware::Cors, EndpointExt, Route, Server};
 use poem_openapi::{
     param::Query,
     payload::{Json, PlainText},
@@ -34,10 +34,8 @@ pub struct HeatlhStatus {
 
 #[derive(ApiResponse)]
 pub enum HealthStatusResponse {
-    /// Returns when the book is successfully created.
     #[oai(status = 200)]
     Ok(Json<HeatlhStatus>),
-    /// Return when something wrong
     #[oai(status = 500)]
     InternalServerError,
 }
@@ -60,21 +58,29 @@ impl UserEndpoints {
         match p_name.0 {
             Some(name) => Json(User { name }),
             None => Json(User {
-                name: format!("{}", "test"),
+                name: "test".to_string(),
             }),
         }
     }
 
     #[oai(path = "/health", method = "get")]
     pub async fn check_health(&self) -> HealthStatusResponse {
-        return HealthStatusResponse::Ok(Json(HeatlhStatus {
+        HealthStatusResponse::Ok(Json(HeatlhStatus {
             status: HealthState::Healthy,
-        }));
+        }))
     }
 }
 
-pub async fn get_postgresql_host() -> String {
-    return env::var("PG_HOST").unwrap_or("127.0.0.1".to_string());
+fn get_postgresql_host() -> String {
+    env::var("PG_HOST").unwrap_or("127.0.0.1".to_string())
+}
+
+fn get_host_addr() -> String {
+    env::var("HOST_ADDR").unwrap_or("localhost".to_string())
+}
+
+fn get_host_port() -> String {
+    env::var("HOST_PORT").unwrap_or("3000".to_string())
 }
 
 async fn get_pool() -> Option<Pool<Postgres>> {
@@ -86,15 +92,22 @@ async fn get_pool() -> Option<Pool<Postgres>> {
         }
         pool = PgPoolOptions::new()
             .max_connections(5)
-            .connect(&format!("postgres://postgres:ssenol@{}/poembooks", get_postgresql_host().await))
+            .connect(&format!(
+                "postgres://postgres:ssenol@{}/poembooks",
+                get_postgresql_host()
+            ))
             .await;
         println!("pool: {pool:#?}");
     }
-    if pool.is_err() {
-        return None;
-    } else {
-        return Some(pool.unwrap());
-    }
+    
+    match pool {
+        Ok(p) => Some(p),
+        Err(_) => None,
+    } 
+}
+
+fn test_func() {
+    todo!()
 }
 
 #[tokio::main]
@@ -112,11 +125,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let api_service = OpenApiService::new(all_endpoints, "Poem Bookstore Api", "1.0")
-        .server("http://0.0.0.0:3000");
+        .server(format!("http://{}:{}", get_host_addr(), get_host_port()));
     let ui = api_service.swagger_ui();
-    let app = Route::new().nest("/", api_service).nest("/docs", ui);
+    let app = Route::new()
+        .nest("/", api_service)
+        .nest("/docs", ui)
+        .with(Cors::new().allow_methods(vec![poem::http::Method::GET, poem::http::Method::POST]));
 
-    Server::new(TcpListener::bind("0.0.0.0:3000"))
+    Server::new(TcpListener::bind(format!("{}:{}", get_host_addr(), get_host_port())))
         .run(app)
         .await?;
 
