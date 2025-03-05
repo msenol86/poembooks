@@ -91,6 +91,33 @@ impl BooksEndpoints {
         }
     }
 
+    /// Update a book
+    #[oai(path = "/books/:id", method = "put")]
+    pub async fn update_book(&self, id: Path<i32>, b: Json<Book>) -> GetBookResponse {
+        let t_book: Option<(i32, String, String, i16)> = sqlx::query_as(
+            "UPDATE books SET title = $1, author = $2, pages = $3 WHERE id = $4 RETURNING *",
+        )
+        .bind(b.title.clone())
+        .bind(b.author.clone())
+        .bind(b.pages as i16)
+        .bind(id.0)
+        .fetch_optional(&self.pool)
+        .await
+        .unwrap();
+        match t_book {
+            Some(t_book) => {
+                let t_book = Book {
+                    id: t_book.0,
+                    title: t_book.1,
+                    author: t_book.2,
+                    pages: t_book.3 as u16,
+                };
+                GetBookResponse::Ok(Json(t_book))
+            }
+            None => GetBookResponse::NotFoundError,
+        }
+    }
+
     /// Check AI for Author-Title match
     #[oai(path = "/books/ai", method = "post")]
     pub async fn check_ai(&self, prompt: Json<AiRequest>) -> Json<AiResponse> {

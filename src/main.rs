@@ -99,11 +99,11 @@ async fn get_pool() -> Option<Pool<Postgres>> {
             .await;
         println!("pool: {pool:#?}");
     }
-    
+
     match pool {
         Ok(p) => Some(p),
         Err(_) => None,
-    } 
+    }
 }
 
 fn test_func() {
@@ -127,14 +127,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api_service = OpenApiService::new(all_endpoints, "Poem Bookstore Api", "1.0")
         .server(format!("http://{}:{}", get_host_addr(), get_host_port()));
     let ui = api_service.swagger_ui();
-    let app = Route::new()
-        .nest("/", api_service)
-        .nest("/docs", ui)
-        .with(Cors::new().allow_methods(vec![poem::http::Method::GET, poem::http::Method::POST]));
+    let app =
+        Route::new()
+            .nest("/", api_service)
+            .nest("/docs", ui)
+            .with(Cors::new().allow_methods(vec![
+                poem::http::Method::GET,
+                poem::http::Method::POST,
+                poem::http::Method::DELETE,
+                poem::http::Method::PUT,
+                poem::http::Method::OPTIONS,
+                poem::http::Method::HEAD,
+                poem::http::Method::PATCH,
+            ]));
 
-    Server::new(TcpListener::bind(format!("{}:{}", get_host_addr(), get_host_port())))
-        .run(app)
-        .await?;
+    Server::new(TcpListener::bind(format!(
+        "{}:{}",
+        get_host_addr(),
+        get_host_port()
+    )))
+    .run(app)
+    .await?;
 
     // Closing connection here
     Ok(())
